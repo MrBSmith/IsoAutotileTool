@@ -15,7 +15,7 @@ enum SUB_PART{
 
 var tile_size := Vector2(32, 16)
 var autotile_nb_tiles := Vector2(5, 10)
-var empty_tile_pos := Vector2(128, 0)
+var empty_tile_cell := Vector2(4, 0)
 
 var half_tile = tile_size / 2
 var quarter_tile = tile_size / 4
@@ -151,8 +151,8 @@ func generate_autotile(file_path: String, output_path: String) -> void:
 
 	# Place the 1 side 1 corner
 	_place_sides(tile_size * Vector2(0, 6), Vector2(4, 2), 1)
-	_place_corners(tile_size * Vector2(0, 6), Vector2(2, 2), [1, 0, 3, 3])
-	_place_corners(tile_size * Vector2(2, 6), Vector2(2, 2), [0, 1, 2, 2])
+	_place_corners(tile_size * Vector2(0, 6), Vector2(2, 2), [1, 0, 3, 2])
+	_place_corners(tile_size * Vector2(2, 6), Vector2(2, 2), [0, 1, 2, 3])
 	
 	# Place the 1 Side 2 corners
 	_place_sides(tile_size * Vector2(0, 8), Vector2(4, 1), 1)
@@ -160,9 +160,9 @@ func generate_autotile(file_path: String, output_path: String) -> void:
 	_place_corners(tile_size * Vector2(0, 8), Vector2(4, 1), [3, 3, 2, 2])
 	
 	# Place the 3 corners tiles
-	_place_corners(tile_size * Vector2(0, 9), Vector2(4, 1), [0, 1, 2, 3])
-	_place_corners(tile_size * Vector2(0, 9), Vector2(4, 1), [1, 2, 3, 0])
-	_place_corners(tile_size * Vector2(0, 9), Vector2(4, 1), [2, 3, 0, 1])
+	for i in range(3):
+		var corner_id_array = range_wrapi(i, 4, 0, 4)
+		_place_corners(tile_size * Vector2(0, 9), Vector2(4, 1), corner_id_array)
 
 	# place the 4 corners tiles
 	for i in range(4):
@@ -174,9 +174,11 @@ func generate_autotile(file_path: String, output_path: String) -> void:
 
 
 func _place_base_tile(origin: Vector2, nb_tiles: Vector2) -> void:
+	var empty_tile_pos = empty_tile_cell * tile_size
 	for i in range(nb_tiles.y):
 		for j in range(nb_tiles.x):
-			output_img.blit_rect(src_img, Rect2(empty_tile_pos, tile_size), origin + Vector2(j, i) * tile_size)
+			var cell_pos = Vector2(j, i) * tile_size
+			output_img.blit_rect(src_img, Rect2(empty_tile_pos, tile_size), origin + cell_pos)
 
 
 func _place_sides(origin: Vector2, nb_tiles: Vector2, nb_sides: int, opposite: bool = false) -> void:
@@ -195,18 +197,27 @@ func _place_sides(origin: Vector2, nb_tiles: Vector2, nb_sides: int, opposite: b
 			iter += 1
 
 
-func _place_corners(origin: Vector2, nb_tiles:= Vector2(2, 2), corners_id_array = range(3)) -> void:
+func _place_corners(origin: Vector2, nb_tiles:= Vector2(2, 2), part_id_array = range(3)) -> void:
 	var iter = 0
 	for i in range(nb_tiles.y):
 		for j in range(nb_tiles.x):
-			var corner_id = corners_id_array[iter]
-			var corner_rect = corner_rect_array[corner_id]
+			var part_id = part_id_array[iter]
+			var part_rect = part_id_array[part_id]
 			var cell = Vector2(j, i)
-			var corner_cell = _find_cell(corner_id)
-			var inside_cell_pos = _find_inside_cell_pos(SUB_PART.CORNER, corner_cell)
+			var part_cell = _find_cell(part_id)
+			var inside_cell_pos = _find_inside_cell_pos(SUB_PART.CORNER, part_cell)
 			var dest_pos = origin + (cell * tile_size) + inside_cell_pos
-			output_img.blit_rect(src_img, corner_rect, dest_pos)
+			output_img.blit_rect(src_img, part_rect, dest_pos)
 			iter += 1
+
+
+func range_wrapi(init_val: int, nb_values: int, min_val: int, max_val: int, increment: int = 1) -> Array:
+	var range_array = range(0, nb_values, increment)
+	var output_array = []
+	for val in range_array:
+		output_array.append(wrapi(init_val + val, min_val, max_val))
+	
+	return output_array
 
 
 func _find_cell(id: int) -> Vector2:
@@ -261,23 +272,21 @@ func _fetch_subtexture_rect(sub_part_type: int) -> Array:
 	return part_array
 
 
-#func _fetch_corners() -> Array:
-#	var sides_array = []
-#	var corner_origin = Vector2(2 * tile_size.x, 0)
-#	for i in range(2):
-#		for j in range(2):
-#			var cell = Vector2(j, i)
-#			var cell_pos = cell * tile_size
-#			var inside_cell_pos = _find_corner_inside_cell_pos(cell)
-#			var rect = Rect2(corner_origin + inside_cell_pos + cell_pos, quarter_tile)
-#			sides_array.append(rect)
-#	return sides_array
-
-
 func get_file_name(path: String) -> String:
 	var splitted_path = path.split("/")
 	var file_name = splitted_path[-1]
 	return file_name.split(".")[0]
+
+
+func _instanciate_file_dialogue():
+	file_dialogue = file_dialogue_scene.instance()
+	file_dialogue.connect("file_selected", self, "_on_file_dialogue_file_selected")
+	
+	editor_interface.get_editor_viewport().add_child(file_dialogue)
+	file_dialogue.set_current_dir(last_path.get_base_dir() + "/")
+	file_dialogue.set_current_path(last_path.get_base_dir() + "/")
+	file_dialogue.set_visible(true)
+	file_dialogue.invalidate()
 
 
 #### INPUTS ####
@@ -312,19 +321,14 @@ func _on_button_generate_autotile_pressed() -> void:
 func _on_button_add_autotile_texture_pressed() -> void:
 	if print_logs:
 		print("Add autotile texture button pressed")
-		
-		file_dialogue = file_dialogue_scene.instance()
-		file_dialogue.connect("file_selected", self, "_on_file_dialogue_file_selected")
-		
-		editor_interface.get_editor_viewport().add_child(file_dialogue)
-		file_dialogue.set_current_dir(last_path.get_base_dir() + "/")
-		file_dialogue.set_current_path(last_path.get_base_dir() + "/")
-		file_dialogue.set_visible(true)
-		file_dialogue.invalidate()
+	
+	_instanciate_file_dialogue()
 
 
 func _on_file_dialogue_file_selected(texture_file_path: String) -> void:
 	if is_file(texture_file_path) && is_file_type_handled(texture_file_path):
+		if print_logs:
+			print("")
 		file_dialogue.queue_free()
 		
 		add_autotile_to_tileset(last_path, texture_file_path)
