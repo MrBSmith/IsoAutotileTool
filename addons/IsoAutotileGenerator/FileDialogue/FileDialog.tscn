@@ -1,0 +1,23 @@
+[gd_scene load_steps=2 format=2]
+
+[sub_resource type="Theme" id=1]
+
+[node name="FileDialog" type="FileDialog"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+margin_left = -180.0
+margin_top = -165.0
+margin_right = 180.0
+margin_bottom = 160.0
+theme = SubResource( 1 )
+popup_exclusive = true
+window_title = "Ouvrir un fichier"
+resizable = true
+dialog_text = "Prout"
+mode = 0
+filters = PoolStringArray( "*.png ; PNG Images" )
+__meta__ = {
+"_edit_use_anchors_": false
+}

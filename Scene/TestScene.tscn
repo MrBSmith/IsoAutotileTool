@@ -1,3 +1,11 @@
-[gd_scene format=2]
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://addons/IsoAutotileGenerator/TilesetTemplate/TilesetTemplate.tres" type="TileSet" id=2]
 
 [node name="Node" type="Node"]
+
+[node name="TileMap" type="TileMap" parent="."]
+mode = 1
+tile_set = ExtResource( 2 )
+cell_size = Vector2( 32, 16 )
+format = 1
