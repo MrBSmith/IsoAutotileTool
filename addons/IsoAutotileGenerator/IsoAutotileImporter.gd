@@ -3,6 +3,7 @@ extends EditorPlugin
 class_name IsoAutotileImporter
 
 onready var editor_interface = get_editor_interface()
+onready var editor_file_system = editor_interface.get_resource_filesystem()
 
 var tile_size := Vector2(32, 16)
 var autotile_nb_tiles := Vector2(5, 10)
@@ -99,7 +100,8 @@ func derstroy_button(button_name: String) -> void:
 
 
 func generate_autotile(file_path: String, output_path: String) -> void:
-	src_img = load(file_path)
+	src_img = Image.new()
+	src_img.load(file_path)
 	var src_image_rect = src_img.get_used_rect()
 	var src_file_name = get_file_name(file_path)
 
@@ -157,8 +159,9 @@ func generate_autotile(file_path: String, output_path: String) -> void:
 	for i in range(4):
 		_place_corners(tile_size * Vector2(4, 6), Vector2(1, 1), [i])
 
-
-	var __ = output_img.save_png(output_path + src_file_name + "_output.png")
+	var output_file_path = output_path + src_file_name + "_output.png"
+	var __ = output_img.save_png(output_file_path)
+	editor_file_system.scan()
 
 
 func _place_base_tile(origin: Vector2, nb_tiles: Vector2) -> void:
@@ -268,4 +271,7 @@ func _on_selected_path_changed(path: String) -> void:
 
 
 func _on_button_generate_autotile_pressed() -> void:
-	print("Autotile gen pressed")
+	if print_logs:
+		print("Autotile gen pressed")
+	
+	generate_autotile(last_path, last_path.get_base_dir() + "/")
