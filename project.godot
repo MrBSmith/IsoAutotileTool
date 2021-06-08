@@ -8,11 +8,25 @@
 
 config_version=4
 
+_global_script_classes=[ {
+"base": "EditorPlugin",
+"class": "IsoAutotileImporter",
+"language": "GDScript",
+"path": "res://addons/IsoAutotileGenerator/IsoAutotileImporter.gd"
+} ]
+_global_script_class_icons={
+"IsoAutotileImporter": ""
+}
+
 [application]
 
 config/name="IsoAutotileTool"
 run/main_scene="res://Scene/TestScene.tscn"
 config/icon="res://icon.png"
+
+[editor_plugins]
+
+enabled=PoolStringArray( "res://addons/IsoAutotileGenerator/plugin.cfg" )
 
 [importer_defaults]
 

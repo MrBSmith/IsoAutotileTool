@@ -1,14 +1,15 @@
-extends Node
+tool
+extends EditorPlugin
+class_name IsoAutotileImporter
 
-var file_path = "res://TestFiles/TestAutotileTool.png"
-var output_folder_path = "res://Output/"
+onready var editor_interface = get_editor_interface()
 
-export var tile_size := Vector2(32, 16)
-export var autotile_nb_tiles := Vector2(5, 9)
-export var empty_tile_pos := Vector2(128, 0)
+var tile_size := Vector2(32, 16)
+var autotile_nb_tiles := Vector2(5, 10)
+var empty_tile_pos := Vector2(128, 0)
 
-onready var half_tile = tile_size / 2
-onready var quarter_tile = tile_size / 4
+var half_tile = tile_size / 2
+var quarter_tile = tile_size / 4
 
 var src_img : Image
 var output_img : Image
@@ -16,84 +17,148 @@ var output_img : Image
 var sides_rect_array := Array()
 var corner_rect_array := Array()
 
+var last_path : String = ""
+
+var handled_ext = ["png", "jpg", "jpeg"]
+
+var button : Button = null
+
+var print_logs : bool = true
+
+signal selected_path_changed(path)
+
+
 #### ACCESSORS ####
 
 
 #### BUILT-IN ####
 
 func _ready() -> void:
-	generate_autotile(file_path)
+	var __ = connect("selected_path_changed", self, "_on_selected_path_changed")
+
+
+func _process(delta: float) -> void:
+	var path = editor_interface.get_current_path()
+	if last_path != path:
+		emit_signal("selected_path_changed", path)
+		last_path = path
+
+
+
+func is_file(path: String) -> bool:
+	var splitted_path = path.split("/")
+	var last_elem = splitted_path[-1]
+	var is_file = ".".is_subsequence_ofi(last_elem)
+	
+	if print_logs:
+		if is_file:
+			print("The given path : %s is a file" % path)
+		else:
+			print("The given path : %s is not a file" % path)
+	return is_file
+
+
+func is_file_type_handled(path) -> bool:
+	var splitted_path = path.split(".")
+	var last_elem = splitted_path[-1]
+	var is_file_handled = last_elem in handled_ext
+	
+	if print_logs:
+		if is_file_handled:
+			print("The given file : %s is handled" % path)
+		else:
+			print("The given file : %s is not handled" % path)
+	return is_file_handled
+
+
+func create_button(button_name: String):
+	if is_instance_valid(button):
+		return
+	
+	button = Button.new()
+	var min_button_name = button_name.to_lower().replace(" ", "_")
+	button.name = min_button_name
+	button.text = button_name
+	add_control_to_container(EditorPlugin.CONTAINER_CANVAS_EDITOR_MENU, button)
+	if print_logs:
+		print("Button added: %s" % min_button_name)
+	
+	button.connect("pressed", self, "_on_button_%s_pressed" % min_button_name)
+
+
+func derstroy_button(button_name: String) -> void:
+	if is_instance_valid(button):
+		remove_control_from_container(EditorPlugin.CONTAINER_CANVAS_EDITOR_MENU, button)
+		button.queue_free()
 
 
 #### VIRTUALS ####
 
 
-
 #### LOGIC ####
 
 
-func generate_autotile(path: String) -> void:
-	src_img = Image.new()
-	src_img.load(path)
+func generate_autotile(file_path: String, output_path: String) -> void:
+	src_img = load(file_path)
 	var src_image_rect = src_img.get_used_rect()
-	var src_file_name = get_file_name(path)
-	
-	# Fetch the rect of the sides and  
+	var src_file_name = get_file_name(file_path)
+
+	# Fetch the rect of the sides and
 	sides_rect_array = _fetch_sides()
 	corner_rect_array = _fetch_corners()
-	
+
 	output_img = Image.new()
 	var output_size = tile_size * autotile_nb_tiles
-	
+
 	# Copie the source image
 	output_img.create(output_size.x, output_size.y, false, Image.FORMAT_RGBA8)
 	output_img.blit_rect(src_img, src_image_rect, Vector2.ZERO)
-	
+
 	# Place 2 sides tiles
 	_place_base_tile(tile_size * Vector2(0, 2), Vector2(2, 2))
 	_place_sides(tile_size * Vector2(0, 2), Vector2(2, 2), 2)
-	
+
 	# Place 3 sides tiles
 	_place_base_tile(tile_size * Vector2(2, 2), Vector2(2, 2))
 	_place_sides(tile_size * Vector2(2, 2), Vector2(2, 2), 3)
-	
+
 	# Place 2 sides and 1 corner tiles
 	_place_base_tile(tile_size * Vector2(0, 4), Vector2(2, 2))
 	_place_sides(tile_size * Vector2(0, 4), Vector2(2, 2), 2)
 	_place_corners(tile_size * Vector2(0, 4), Vector2(2, 2), [1, 3, 0, 2])
-	
-	# Place the 4 sides tile 
+
+	# Place the 4 sides tile
 	_place_base_tile(tile_size * Vector2(4, 1), Vector2(1, 1))
 	_place_sides(tile_size * Vector2(4, 1), Vector2(1, 1), 4)
-	
+
 	# Place the 2 sides parallel tile
 	_place_base_tile(tile_size * Vector2(4, 2), Vector2(1, 2))
 	_place_sides(tile_size * Vector2(4, 2), Vector2(1, 2), 2, true)
-	
+
 	# Place the 2 corners sides
 	_place_base_tile(tile_size * Vector2(2, 4), Vector2(3, 2))
 	_place_corners(tile_size * Vector2(2, 4), Vector2(3, 2), [0, 2, 1, 3, 2, 0])
 	_place_corners(tile_size * Vector2(2, 4), Vector2(3, 2), [2, 1, 3, 0, 3, 1])
-	
+
 	# Place the 1 side 1 corner
 	_place_base_tile(tile_size * Vector2(0, 6), Vector2(4, 2))
 	_place_sides(tile_size * Vector2(0, 6), Vector2(4, 2), 1)
 	_place_corners(tile_size * Vector2(0, 6), Vector2(2, 2), [1, 0, 3, 3])
 	_place_corners(tile_size * Vector2(2, 6), Vector2(2, 2), [0, 1, 2, 2])
-	
+
 	# Place the 3 corners tiles
-	_place_base_tile(tile_size * Vector2(0, 7), Vector2(4, 1))
-	_place_corners(tile_size * Vector2(0, 7), Vector2(4, 1), [0, 1, 2, 3])
-	_place_corners(tile_size * Vector2(0, 7), Vector2(4, 1), [1, 2, 3, 0])
-	_place_corners(tile_size * Vector2(0, 7), Vector2(4, 1), [2, 3, 0, 1])
-	
+	_place_base_tile(tile_size * Vector2(0, 8), Vector2(4, 1))
+	_place_corners(tile_size * Vector2(0, 8), Vector2(4, 1), [0, 1, 2, 3])
+	_place_corners(tile_size * Vector2(0, 8), Vector2(4, 1), [1, 2, 3, 0])
+	_place_corners(tile_size * Vector2(0, 8), Vector2(4, 1), [2, 3, 0, 1])
+
 	# place the 4 corners tiles
 	_place_base_tile(tile_size * Vector2(4, 6), Vector2(1, 1))
 	for i in range(4):
 		_place_corners(tile_size * Vector2(4, 6), Vector2(1, 1), [i])
-	
-	
-	var __ = output_img.save_png(output_folder_path + src_file_name + "_output.png")
+
+
+	var __ = output_img.save_png(output_path + src_file_name + "_output.png")
 
 
 func _place_base_tile(origin: Vector2, nb_tiles: Vector2) -> void:
@@ -114,7 +179,7 @@ func _place_sides(origin: Vector2, nb_tiles: Vector2, nb_sides: int, opposite: b
 				var cell_pos = Vector2(j, i) * tile_size
 				var dest_pos = origin + cell_pos + inside_cell_pos
 				output_img.blit_rect(src_img, side_rect, dest_pos)
-			
+
 			iter += 1
 
 
@@ -191,3 +256,16 @@ func get_file_name(path: String) -> String:
 
 
 #### SIGNAL RESPONSES ####
+
+func _on_selected_path_changed(path: String) -> void:
+	if print_logs: 
+		print("current path %s" % path)
+	
+	if is_file(path) && is_file_type_handled(path):
+		create_button("Generate autotile")
+	else:
+		derstroy_button("Generate autotile")
+
+
+func _on_button_generate_autotile_pressed() -> void:
+	print("Autotile gen pressed")

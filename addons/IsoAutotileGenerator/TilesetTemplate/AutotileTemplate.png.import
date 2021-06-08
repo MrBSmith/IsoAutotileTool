@@ -2,15 +2,15 @@
 
 importer="texture"
 type="StreamTexture"
-path="res://.import/TestAutotileTool_output.png-3a2157a896663cedfee943840f64aed3.stex"
+path="res://.import/AutotileTemplate.png-c826f30c5e1d49c97d3986cd02d57ad4.stex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Output/TestAutotileTool_output.png"
-dest_files=[ "res://.import/TestAutotileTool_output.png-3a2157a896663cedfee943840f64aed3.stex" ]
+source_file="res://addons/IsoAutotileGenerator/TilesetTemplate/AutotileTemplate.png"
+dest_files=[ "res://.import/AutotileTemplate.png-c826f30c5e1d49c97d3986cd02d57ad4.stex" ]
 
 [params]
 
