@@ -244,17 +244,32 @@ func _find_inside_cell_pos(sub_part_type: int, cell_pos: Vector2) -> Vector2:
 
 
 func add_autotile_to_tileset(tileset_path: String, texture_path: String):
-	var tileset = load(tileset_path)
+	var tileset : TileSet = load(tileset_path)
 	if print_logs && tileset != null:
 		print("Tileset loaded from path %s" % tileset_path)
 		
 	var texture = load(texture_path)
 	if print_logs && texture != null:
 		print("Texture loaded from path %s" % texture_path)
-		
+	
+	# Add the tile
 	var tile_id = tileset.get_tiles_ids().size()
 	tileset.create_tile(tile_id)
 	tileset.tile_set_texture(tile_id, texture)
+	tileset.tile_set_tile_mode(tile_id, TileSet.AUTO_TILE)
+	tileset.tile_set_region(tile_id, Rect2(Vector2.ZERO, autotile_nb_tiles * tile_size))
+	tileset.autotile_set_size(tile_id, tile_size)
+	tileset.autotile_set_bitmask_mode(tile_id, TileSet.BITMASK_3X3_MINIMAL)
+	tileset.autotile_set_icon_coordinate(tile_id, Vector2(4, 1))
+	
+	# Apply the bitmask
+	var template : TileSet = load(tileset_template_path)
+	for i in range(autotile_nb_tiles.y):
+		for j in range(autotile_nb_tiles.x):
+			var bitmask = template.autotile_get_bitmask(0, Vector2(j, i))
+			tileset.autotile_set_bitmask(tile_id, Vector2(j, i), bitmask)
+	
+	# Overwrite the tileset file
 	ResourceSaver.save(last_path, tileset)
 
 
@@ -276,6 +291,7 @@ func get_file_name(path: String) -> String:
 	var splitted_path = path.split("/")
 	var file_name = splitted_path[-1]
 	return file_name.split(".")[0]
+
 
 
 func _instanciate_file_dialogue():
